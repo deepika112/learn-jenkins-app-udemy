@@ -83,10 +83,34 @@ pipeline {
                    echo "Deploying the site"
                    node_modules/.bin/netlify status
                    node_modules/.bin/netlify deploy --dir=build --json > deploy-staging.txt
-                   node_modules/.bin/node-jq -r ".deploy_url" deploy-staging.txt
                    # --prod removed the flag to create a staging environment 
                    # for netlify which is the default if not specified
                 '''
+                script{
+                    env.Deploy_URL=sh(script: "node_modules/.bin/node-jq -r '.deploy_url' deploy-staging.txt", returnStdout: true)
+                }
+            }
+        }
+
+        stage('Staging E2E Test'){
+            agent{
+                docker{
+                    image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
+                    reuseNode true
+                }
+            }
+            environment{
+                CI_ENVIRONMENT_URL="${env.Deploy_URL}"
+            }
+            steps{
+                sh '''
+                    npx playwright test --reporter=html
+                '''
+            }
+            post{
+                always{
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Staging E2E Report', reportTitles: '', useWrapperFileDirectly: true])
+                }
             }
         }
 
