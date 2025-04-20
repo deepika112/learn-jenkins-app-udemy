@@ -6,10 +6,16 @@ pipeline {
         REACT_APP_VERSION="1.0.$BUILD_ID"
     }
     stages {
+        stage('DOCKER'){
+            steps{
+                sh 'docker build -t playwright-image .'
+            }
+        }
+
         stage('Build') {
             agent{
                 docker{
-                    image 'node:18-alpine'
+                    image 'playwright-image'
                     reuseNode true
                 }
             }
@@ -24,11 +30,6 @@ pipeline {
             }
         }
 
-        stage('DOCKER'){
-            steps{
-                sh 'docker build -t playwright-image .'
-            }
-        }
         stage('All Tests'){
             parallel{
                 stage ('Test'){
@@ -78,7 +79,7 @@ pipeline {
         stage('Deploy staging') {
             agent{
                 docker{
-                    image 'node:18-alpine'
+                    image 'playwright-image'
                     reuseNode true
                 }
             }
@@ -130,7 +131,7 @@ pipeline {
         stage('Deploy Production') {
             agent{
                 docker{
-                    image 'node:18-alpine'
+                    image 'playwright-image'
                     reuseNode true
                 }
             }
